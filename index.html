@@ -3,46 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MeArm 雙手把控制器</title>
+    <title>MeArm 修正版控制器</title>
     <style>
         body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; margin: 0; padding: 15px; touch-action: none; }
-        .container { max-width: 700px; margin: auto; background: #2d2d2d; padding: 20px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .status { margin-bottom: 15px; font-size: 13px; color: #888; }
-        .layout { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; }
-        .control-group { background: #3d3d3d; padding: 15px; border-radius: 20px; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        
+        .container { max-width: 650px; margin: auto; background: #2d2d2d; padding: 20px; border-radius: 25px; }
+        .layout { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; margin-top: 20px; }
+        .control-group { background: #3d3d3d; padding: 15px; border-radius: 20px; flex: 1; min-width: 280px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         button { 
-            width: 75px; height: 75px; font-size: 15px; font-weight: bold; border-radius: 12px; 
+            width: 100%; height: 75px; font-size: 16px; font-weight: bold; border-radius: 12px; 
             border: none; background: #007AFF; color: white; cursor: pointer;
             user-select: none; -webkit-user-select: none; touch-action: none;
         }
         button:active { background: #004a99; transform: scale(0.92); }
-        .conn-btn { width: 100%; height: 50px; background: #34C759; margin-bottom: 15px; }
+        .btn-conn { width: 100%; height: 50px; background: #34C759; margin-bottom: 15px; }
         .label { grid-column: span 3; margin-bottom: 10px; font-size: 14px; color: #aaa; }
         .orange { background: #FF9500; }
-        .orange:active { background: #cc7a00; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h3>MeArm 雙手把模式</h3>
-        <button class="conn-btn" onclick="connect()">1. 連接藍牙</button>
-        <div id="stat" class="status">狀態: 未連線</div>
+        <h3>MeArm 修正控制介面</h3>
+        <button class="btn-conn" onclick="connect()">連接藍牙</button>
+        <div id="stat">狀態: 未連線</div>
 
         <div class="layout">
             <div class="control-group">
                 <div class="grid">
-                    <div class="label">左手 (底座 / 左馬達)</div>
-                    <div></div> <button id="F">前進</button> <div></div>
-                    <button id="LEFT">左轉</button> <div></div> <button id="RIGHT">右轉</button>
-                    <div></div> <button id="B">後退</button> <div></div>
+                    <div class="label">底座與左右控制</div>
+                    <div></div> <button id="LEFT_BTN">左轉</button> <div></div>
+                    <button id="B">後退</button> <div></div> <button id="F">前進</button>
+                    <div></div> <button id="RIGHT_BTN">右轉</button> <div></div>
                 </div>
             </div>
 
             <div class="control-group">
                 <div class="grid">
-                    <div class="label">右手 (右馬達上下)</div>
+                    <div class="label">上下移動控制</div>
                     <div></div> <button id="U" class="orange">上升</button> <div></div>
                     <div></div> <div style="height:75px"></div> <div></div>
                     <div></div> <button id="D" class="orange">下降</button> <div></div>
@@ -86,12 +83,21 @@
             setTimeout(() => send('S'), 50);
         }
 
-        const btns = ['F', 'B', 'LEFT', 'RIGHT', 'U', 'D'];
-        btns.forEach(id => {
-            const el = document.getElementById(id);
-            el.addEventListener('mousedown', () => start(id));
+        // 修改這裡的對應關係，確保按鈕發送正確的指令
+        const btnConfigs = [
+            { id: 'LEFT_BTN', cmd: 'LEFT' },
+            { id: 'RIGHT_BTN', cmd: 'RIGHT' },
+            { id: 'F', cmd: 'F' },
+            { id: 'B', cmd: 'B' },
+            { id: 'U', cmd: 'U' },
+            { id: 'D', cmd: 'D' }
+        ];
+
+        btnConfigs.forEach(config => {
+            const el = document.getElementById(config.id);
+            el.addEventListener('mousedown', () => start(config.cmd));
             el.addEventListener('mouseup', stop);
-            el.addEventListener('touchstart', (e) => { e.preventDefault(); start(id); });
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); start(config.cmd); });
             el.addEventListener('touchend', (e) => { e.preventDefault(); stop(); });
         });
     </script>
