@@ -3,57 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MeArm 修正版控制器</title>
+    <title>MeArm 全功能控制面板</title>
     <style>
         body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; margin: 0; padding: 15px; touch-action: none; }
-        .container { max-width: 700px; margin: auto; background: #2d2d2d; padding: 20px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .status { margin-bottom: 15px; font-size: 13px; color: #888; }
-        .layout { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; }
-        .control-group { background: #3d3d3d; padding: 15px; border-radius: 20px; }
+        .container { max-width: 650px; margin: auto; background: #2d2d2d; padding: 20px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .layout { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 15px; }
+        .control-group { background: #3d3d3d; padding: 15px; border-radius: 20px; flex: 1; min-width: 280px; }
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-        
         button { 
-            width: 75px; height: 75px; font-size: 15px; font-weight: bold; border-radius: 12px; 
+            width: 100%; height: 75px; font-size: 16px; font-weight: bold; border-radius: 12px; 
             border: none; background: #007AFF; color: white; cursor: pointer;
             user-select: none; -webkit-user-select: none; touch-action: none;
         }
         button:active { background: #004a99; transform: scale(0.92); }
         .conn-btn { width: 100%; height: 50px; background: #34C759; margin-bottom: 15px; }
-        .label { grid-column: span 3; margin-bottom: 10px; font-size: 14px; color: #aaa; }
+        .claw-btn { background: #FF2D55; }
+        .claw-btn:active { background: #BD1E3E; }
         .orange { background: #FF9500; }
-        .orange:active { background: #cc7a00; }
+        .label { grid-column: span 3; margin-bottom: 10px; color: #aaa; font-size: 14px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h3>MeArm 雙手把模式 (修正版)</h3>
-        <button class="conn-btn" onclick="connect()">1. 連接藍牙</button>
-        <div id="stat" class="status">狀態: 未連線</div>
+        <h3>MeArm 全功能控制</h3>
+        <button class="conn-btn" onclick="connect()">連接藍牙</button>
+        <div id="stat">狀態: 未連線</div>
 
         <div class="layout">
             <div class="control-group">
                 <div class="grid">
-                    <div class="label">左手 (底座 / 上下控制)</div>
-                    <div></div> <button id="BTN_UP">上升</button> <div></div>
-                    <button id="BTN_LEFT">左轉</button> <div></div> <button id="BTN_RIGHT">右轉</button>
-                    <div></div> <button id="BTN_DOWN">下降</button> <div></div>
+                    <div class="label">底座與上下 (左馬達)</div>
+                    <div></div> <button id="btn-up">上升</button> <div></div>
+                    <button id="btn-left">左轉</button> <div></div> <button id="btn-right">右轉</button>
+                    <div></div> <button id="btn-down">下降</button> <div></div>
                 </div>
             </div>
 
             <div class="control-group">
                 <div class="grid">
-                    <div class="label">右手 (前後控制)</div>
-                    <div></div> <button id="BTN_FORWARD" class="orange">前進</button> <div></div>
+                    <div class="label">前後控制 (右馬達)</div>
+                    <div></div> <button id="btn-forward" class="orange">前進</button> <div></div>
                     <div></div> <div style="height:75px"></div> <div></div>
-                    <div></div> <button id="BTN_BACK" class="orange">後退</button> <div></div>
+                    <div></div> <button id="btn-back" class="orange">後退</button> <div></div>
+                </div>
+            </div>
+
+            <div class="control-group" style="width: 100%; margin-top: 15px;">
+                <div class="label">夾爪控制 (Claw)</div>
+                <div style="display: flex; gap: 15px;">
+                    <button id="btn-grab" class="claw-btn">抓取 (Grab)</button>
+                    <button id="btn-release" class="claw-btn" style="background:#AF52DE">釋放 (Release)</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let char;
-        let timer = null;
+        let char; let timer = null;
         const S_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
         const C_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
@@ -66,35 +72,19 @@
                 const server = await dev.gatt.connect();
                 const service = await server.getPrimaryService(S_UUID);
                 char = await service.getCharacteristic(C_UUID);
-                document.getElementById('stat').innerText = "連線成功 ✅";
-            } catch (e) { console.log(e); }
+                document.getElementById('stat').innerText = "已連線 ✅";
+            } catch (e) { alert(e); }
         }
 
-        async function send(cmd) {
-            if (char) { try { await char.writeValue(new TextEncoder().encode(cmd)); } catch (e) {} }
-        }
+        async function send(cmd) { if (char) await char.writeValue(new TextEncoder().encode(cmd)); }
+        function start(cmd) { if (timer) clearInterval(timer); send(cmd); timer = setInterval(() => send(cmd), 80); }
+        function stop() { clearInterval(timer); timer = null; setTimeout(() => send('S'), 50); }
 
-        function start(cmd) {
-            if (timer) clearInterval(timer);
-            send(cmd);
-            timer = setInterval(() => send(cmd), 80);
-        }
-
-        function stop() {
-            clearInterval(timer);
-            timer = null;
-            setTimeout(() => send('S'), 50);
-        }
-
-        // 修改這裡的映射關係：按鈕對應正確的指令
-        // 原本 U/D 控制右馬達，F/B 控制左馬達。因為您反應反了，所以我們調換指令
         const btnMap = [
-            { id: 'BTN_UP',      cmd: 'F' },     // 按上升發送 F (控制左馬達)
-            { id: 'BTN_DOWN',    cmd: 'B' },     // 按下降發送 B (控制左馬達)
-            { id: 'BTN_LEFT',    cmd: 'LEFT' },  // 左轉維持 LEFT
-            { id: 'BTN_RIGHT',   cmd: 'RIGHT' }, // 右轉維持 RIGHT
-            { id: 'BTN_FORWARD', cmd: 'U' },     // 按前進發送 U (控制右馬達)
-            { id: 'BTN_BACK',    cmd: 'D' }      // 按後退發送 D (控制右馬達)
+            { id: 'btn-up', cmd: 'F' }, { id: 'btn-down', cmd: 'B' },
+            { id: 'btn-left', cmd: 'LEFT' }, { id: 'btn-right', cmd: 'RIGHT' },
+            { id: 'btn-forward', cmd: 'U' }, { id: 'btn-back', cmd: 'D' },
+            { id: 'btn-grab', cmd: 'GRAB' }, { id: 'btn-release', cmd: 'RELEASE' }
         ];
 
         btnMap.forEach(item => {
