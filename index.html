@@ -3,52 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MeArm 專業操控面板</title>
+    <title>MeArm 雙手把控制器</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background: #2c3e50; color: white; margin: 0; padding: 20px; touch-action: none; }
-        .container { max-width: 600px; margin: auto; background: #34495e; padding: 20px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .status { margin-bottom: 20px; font-size: 14px; color: #bdc3c7; }
-        
-        .control-layout { display: flex; justify-content: space-around; align-items: center; margin-top: 20px; }
-        .joy-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        body { font-family: sans-serif; text-align: center; background: #1a1a1a; color: white; margin: 0; padding: 15px; touch-action: none; }
+        .container { max-width: 700px; margin: auto; background: #2d2d2d; padding: 20px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .status { margin-bottom: 15px; font-size: 13px; color: #888; }
+        .layout { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; }
+        .control-group { background: #3d3d3d; padding: 15px; border-radius: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
         
         button { 
-            width: 70px; height: 70px; font-size: 16px; font-weight: bold; border-radius: 15px; 
-            border: none; background: #3498db; color: white; cursor: pointer;
+            width: 75px; height: 75px; font-size: 15px; font-weight: bold; border-radius: 12px; 
+            border: none; background: #007AFF; color: white; cursor: pointer;
             user-select: none; -webkit-user-select: none; touch-action: none;
         }
-        button:active { background: #2980b9; transform: scale(0.95); }
-        .btn-conn { width: 100%; height: 50px; background: #2ecc71; margin-bottom: 10px; border-radius: 10px; }
-        .label { grid-column: span 3; margin-bottom: 5px; color: #ecf0f1; font-size: 14px; }
-        
-        /* 特殊按鈕顏色 */
-        .up-down-btn { background: #e67e22; }
-        .up-down-btn:active { background: #d35400; }
+        button:active { background: #004a99; transform: scale(0.92); }
+        .conn-btn { width: 100%; height: 50px; background: #34C759; margin-bottom: 15px; }
+        .label { grid-column: span 3; margin-bottom: 10px; font-size: 14px; color: #aaa; }
+        .orange { background: #FF9500; }
+        .orange:active { background: #cc7a00; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>MeArm 控制中心</h2>
-        <button class="btn-conn" onclick="connectBLE()">連接藍牙手臂</button>
-        <div id="status" class="status">狀態: 未連線</div>
+        <h3>MeArm 雙手把模式</h3>
+        <button class="conn-btn" onclick="connect()">1. 連接藍牙</button>
+        <div id="stat" class="status">狀態: 未連線</div>
 
-        <div class="control-layout">
-            <div class="joy-group">
-                <div class="label">底座 / 前後</div>
-                <div></div> <button id="F">前進</button> <div></div>
-                <button id="LEFT">左轉</button> <div></div> <button id="RIGHT">右轉</button>
-                <div></div> <button id="B">後退</button> <div></div>
+        <div class="layout">
+            <div class="control-group">
+                <div class="grid">
+                    <div class="label">左手 (底座 / 左馬達)</div>
+                    <div></div> <button id="F">前進</button> <div></div>
+                    <button id="LEFT">左轉</button> <div></div> <button id="RIGHT">右轉</button>
+                    <div></div> <button id="B">後退</button> <div></div>
+                </div>
             </div>
 
-            <div class="joy-group">
-                <div class="label">右馬達 (上下)</div>
-                <div></div> <button id="U" class="up-down-btn">上升</button> <div></div>
-                <div></div> <div style="height:70px"></div> <div></div>
-                <div></div> <button id="D" class="up-down-btn">下降</button> <div></div>
+            <div class="control-group">
+                <div class="grid">
+                    <div class="label">右手 (右馬達上下)</div>
+                    <div></div> <button id="U" class="orange">上升</button> <div></div>
+                    <div></div> <div style="height:75px"></div> <div></div>
+                    <div></div> <button id="D" class="orange">下降</button> <div></div>
+                </div>
             </div>
         </div>
-        
-        <div style="margin-top: 30px; font-size: 12px; color: #95a5a6;">按住移動，放開即停</div>
     </div>
 
     <script>
@@ -57,7 +57,7 @@
         const S_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
         const C_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
-        async function connectBLE() {
+        async function connect() {
             try {
                 const dev = await navigator.bluetooth.requestDevice({
                     filters: [{ name: 'ESP32_Arm_Controller' }],
@@ -66,17 +66,12 @@
                 const server = await dev.gatt.connect();
                 const service = await server.getPrimaryService(S_UUID);
                 char = await service.getCharacteristic(C_UUID);
-                document.getElementById('status').innerText = "狀態: 已連線 ✅";
-                document.getElementById('status').style.color = "#2ecc71";
+                document.getElementById('stat').innerText = "連線成功 ✅";
             } catch (e) { console.log(e); }
         }
 
         async function send(cmd) {
-            if (char) {
-                try {
-                    await char.writeValue(new TextEncoder().encode(cmd));
-                } catch (e) {}
-            }
+            if (char) { try { await char.writeValue(new TextEncoder().encode(cmd)); } catch (e) {} }
         }
 
         function start(cmd) {
@@ -91,7 +86,6 @@
             setTimeout(() => send('S'), 50);
         }
 
-        // 綁定所有按鈕
         const btns = ['F', 'B', 'LEFT', 'RIGHT', 'U', 'D'];
         btns.forEach(id => {
             const el = document.getElementById(id);
