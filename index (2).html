@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>機械手臂 - 穩定控制版</title>
+    <style>
+        body { text-align: center; font-family: -apple-system, sans-serif; background: #f4f4f9; padding-top: 30px; }
+        .box { background: white; width: 85%; max-width: 320px; margin: auto; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
+        button { 
+            width: 100%; height: 80px; font-size: 18px; font-weight: bold; border-radius: 15px; 
+            border: none; background: #007AFF; color: white; cursor: pointer;
+            user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+            touch-action: none; /* 重要：防止瀏覽器手勢干擾 */
+        }
+        button:active { background: #0051A8; }
+        .conn-btn { width: 100%; height: 55px; background: #34C759; margin-bottom: 10px; border-radius: 12px; }
+        #stat { font-size: 14px; color: #666; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <button class="conn-btn" onclick="connect()">1. 連接藍牙手臂</button>
+        <div id="stat">狀態: 未連線</div>
+        
+        <div class="grid">
+            <div></div> <button id="U">UP</button> <div></div>
+            <button id="LEFT">左</button> <div></div> <button id="RIGHT">右</button>
+            <div></div> <button id="D">下</button> <div></div>
+        </div>
+    </div>
+
+    <script>
+        let char;
+        let timer = null;
+        const S_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
+        const C_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
+
+        async function connect() {
+            try {
+                const dev = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'ESP32_Arm_Controller' }],
+                    optionalServices: [S_UUID]
+                });
+                const server = await dev.gatt.connect();
+                const service = await server.getPrimaryService(S_UUID);
+                char = await service.getCharacteristic(C_UUID);
+                document.getElementById('stat').innerText = "狀態: 已連線 ✅";
+                document.getElementById('stat').style.color = "#34C759";
+            } catch (e) { alert("連線失敗: " + e); }
+        }
+
+        async function send(cmd) {
+            if (!char) return;
+            try {
+                // 使用 writeValueWithResponse 確保指令確實送達
+                await char.writeValue(new TextEncoder().encode(cmd));
+            } catch (e) { console.log("傳輸中..."); }
+        }
+
+        function start(cmd) {
+            if (timer) clearInterval(timer);
+            send(cmd); // 按下瞬間發送一次
+            timer = setInterval(() => send(cmd), 80); // 每 80ms 持續發送指令 (心跳)
+        }
+
+        function stop() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+            // 延遲一小段時間發送停止，確保不會跟最後一個移動指令打架
+            setTimeout(() => send('S'), 50); // 強制發送停止指令 S
+        }
+
+        // 綁定所有控制鍵，同時處理滑鼠與觸控事件
+        const btns = ['U', 'D', 'LEFT', 'RIGHT'];
+        btns.forEach(id => {
+            const el = document.getElementById(id);
+            // 電腦端
+            el.addEventListener('mousedown', () => start(id));
+            el.addEventListener('mouseup', stop);
+            el.addEventListener('mouseleave', stop); // 移出按鈕也要停
+            // 手機端
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); start(id); });
+            el.addEventListener('touchend', (e) => { e.preventDefault(); stop(); });
+            el.addEventListener('touchcancel', (e) => { e.preventDefault(); stop(); });
+        });
+    </script>
+</body>
+</html>
