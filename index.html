@@ -95,14 +95,15 @@
         }
 
         async function send(cmd) { 
-            if (char) {
-                try {
-                    await char.writeValue(new TextEncoder().encode(cmd)); 
-                } catch (e) {
-                    console.log("傳送失敗:", e);
-                }
-            }
+    if (char) {
+        try {
+            // 確保指令轉為大寫再送出
+            await char.writeValue(new TextEncoder().encode(cmd.toUpperCase())); 
+        } catch (e) {
+            console.log("傳送失敗:", e);
         }
+    }
+}
 
         function start(cmd) { 
             if (timer) clearInterval(timer); 
@@ -136,3 +137,4 @@
     </script>
 </body>
 </html>
+
