@@ -14,7 +14,6 @@
             width: 100%; height: 75px; font-size: 16px; font-weight: bold; border-radius: 12px; 
             border: none; background: #007AFF; color: white; cursor: pointer;
             user-select: none; -webkit-user-select: none; touch-action: none;
-            transition: transform 0.1s;
         }
         button:active { background: #004a99; transform: scale(0.92); }
         .conn-btn { width: 100%; height: 50px; background: #34C759; margin-bottom: 15px; }
@@ -29,7 +28,7 @@
     <div class="container">
         <h3>MeArm 全功能控制</h3>
         <button class="conn-btn" onclick="connect()">連接藍牙 (ESP32_Arm_Controller)</button>
-        <div id="stat" style="margin-bottom: 15px;">狀態: 未連線 ❌</div>
+        <div id="stat" style="margin-bottom: 15px; font-weight: bold;">狀態: 未連線 ❌</div>
 
         <div class="layout">
             <div class="control-group">
@@ -67,29 +66,43 @@
     </div>
 
     <script>
-        let char; let timer = null;
+        let char; let device = null; let timer = null;
         const S_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
         const C_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 
         async function connect() {
             try {
-                const dev = await navigator.bluetooth.requestDevice({
+                device = await navigator.bluetooth.requestDevice({
                     filters: [{ name: 'ESP32_Arm_Controller' }],
                     optionalServices: [S_UUID]
                 });
-                const server = await dev.gatt.connect();
+                
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+                
+                const server = await device.gatt.connect();
                 const service = await server.getPrimaryService(S_UUID);
                 char = await service.getCharacteristic(C_UUID);
+                
                 document.getElementById('stat').innerText = "狀態: 已連線 ✅";
                 document.getElementById('stat').style.color = "#34C759";
-            } catch (e) { alert("連線失敗: " + e); }
+            } catch (e) { 
+                alert("連線失敗: " + e); 
+            }
+        }
+
+        function onDisconnected() {
+            document.getElementById('stat').innerText = "狀態: 連線中斷 ❌ (請重新連接)";
+            document.getElementById('stat').style.color = "#FF3B30";
+            char = null;
         }
 
         async function send(cmd) { 
-            if (char) {
+            if (char && char.service.device.gatt.connected) {
                 try {
                     await char.writeValue(new TextEncoder().encode(cmd)); 
                 } catch (e) { console.log("傳送失敗:", e); }
+            } else {
+                console.log("藍牙未連線");
             }
         }
 
